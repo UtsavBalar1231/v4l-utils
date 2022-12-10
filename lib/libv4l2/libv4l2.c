@@ -140,6 +140,7 @@ static int v4l2_request_read_buffers(int index)
 	req.memory = V4L2_MEMORY_MMAP;
 	result = devices[index].dev_ops->ioctl(devices[index].dev_ops_priv,
 			devices[index].fd, VIDIOC_REQBUFS, &req);
+	V4L2_LOG("%s:  VIDIOC_REQBUFS", __func__);
 	if (result < 0) {
 		int saved_err = errno;
 
@@ -168,6 +169,7 @@ static void v4l2_unrequest_read_buffers(int index)
 	req.count = 0;
 	req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	req.memory = V4L2_MEMORY_MMAP;
+	V4L2_LOG("%s:  VIDIOC_REQBUFS", __func__);
 	if (devices[index].dev_ops->ioctl(devices[index].dev_ops_priv,
 			devices[index].fd, VIDIOC_REQBUFS, &req) < 0)
 		return;
@@ -194,6 +196,7 @@ static int v4l2_map_buffers(int index)
 		result = devices[index].dev_ops->ioctl(
 				devices[index].dev_ops_priv,
 				devices[index].fd, VIDIOC_QUERYBUF, &buf);
+	V4L2_LOG("%s:  VIDIOC_QUERYBUF", __func__);
 		if (result) {
 			int saved_err = errno;
 
@@ -246,6 +249,7 @@ static int v4l2_streamon(int index)
 		result = devices[index].dev_ops->ioctl(
 				devices[index].dev_ops_priv,
 				devices[index].fd, VIDIOC_STREAMON, &type);
+	V4L2_LOG("%s:  VIDIOC_STREAMON", __func__);
 		if (result) {
 			int saved_err = errno;
 
@@ -269,6 +273,7 @@ static int v4l2_streamoff(int index)
 		result = devices[index].dev_ops->ioctl(
 				devices[index].dev_ops_priv,
 				devices[index].fd, VIDIOC_STREAMOFF, &type);
+	V4L2_LOG("%s:  VIDIOC_STREAMOFF", __func__);
 		if (result) {
 			int saved_err = errno;
 
@@ -299,6 +304,7 @@ static int v4l2_queue_read_buffer(int index, int buffer_index)
 	buf.index  = buffer_index;
 	result = devices[index].dev_ops->ioctl(devices[index].dev_ops_priv,
 			devices[index].fd, VIDIOC_QBUF, &buf);
+	V4L2_LOG("%s:  VIDIOC_QBUF", __func__);
 	if (result) {
 		int saved_err = errno;
 
@@ -328,6 +334,7 @@ static int v4l2_dequeue_and_convert(int index, struct v4l2_buffer *buf,
 		result = devices[index].dev_ops->ioctl(
 				devices[index].dev_ops_priv,
 				devices[index].fd, VIDIOC_DQBUF, buf);
+	V4L2_LOG("%s:  VIDIOC_DQBUF", __func__);
 		pthread_mutex_lock(&devices[index].stream_lock);
 		if (result) {
 			if (errno != EAGAIN) {
@@ -584,6 +591,7 @@ static int v4l2_buffers_mapped(int index)
 					devices[index].dev_ops_priv,
 					devices[index].fd, VIDIOC_QUERYBUF,
 					&buf)) {
+	V4L2_LOG("%s:  VIDIOC_QUERYBUF", __func__);
 				int saved_err = errno;
 
 				V4L2_PERROR("querying buffer %u", i);
@@ -688,6 +696,7 @@ int v4l2_fd_open(int fd, int v4l2_flags)
 
 	/* check that this is a v4l2 device */
 	if (dev_ops->ioctl(dev_ops_priv, fd, VIDIOC_QUERYCAP, &cap)) {
+	V4L2_LOG("%s:  VIDIOC_QUERYCAP", __func__);
 		int saved_err = errno;
 		V4L2_LOG_ERR("getting capabilities: %s\n", strerror(errno));
 		v4l2_plugin_cleanup(plugin_library, dev_ops_priv, dev_ops);
@@ -704,6 +713,7 @@ int v4l2_fd_open(int fd, int v4l2_flags)
 	/* Get current cam format */
 	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	if (dev_ops->ioctl(dev_ops_priv, fd, VIDIOC_G_FMT, &fmt)) {
+	V4L2_LOG("%s:  VIDIOC_G_FMT", __func__);
 		int saved_err = errno;
 		V4L2_LOG_ERR("getting pixformat: %s\n", strerror(errno));
 		v4l2_plugin_cleanup(plugin_library, dev_ops_priv, dev_ops);
@@ -713,9 +723,11 @@ int v4l2_fd_open(int fd, int v4l2_flags)
 
 	/* Check for frame rate setting support */
 	parm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	if (dev_ops->ioctl(dev_ops_priv, fd, VIDIOC_G_PARM, &parm))
+	if (dev_ops->ioctl(dev_ops_priv, fd, VIDIOC_G_PARM, &parm)) {
 		parm.type = 0;
-
+		V4L2_LOG("%s:  VIDIOC_G_PARM", __func__);
+	}
+	
 	/* init libv4lconvert */
 	if (!(v4l2_flags & V4L2_DISABLE_CONVERSION)) {
 		convert = v4lconvert_create_with_dev_ops(fd, dev_ops_priv, dev_ops);
@@ -1046,6 +1058,7 @@ static int v4l2_s_fmt(int index, struct v4l2_format *dest_fmt)
 		struct v4l2_streamparm parm = {
 			.type = V4L2_BUF_TYPE_VIDEO_CAPTURE,
 		};
+		V4L2_LOG("%s:  VIDIOC_G_PARM", __func__);
 		if (devices[index].dev_ops->ioctl(devices[index].dev_ops_priv,
 						  devices[index].fd,
 						  VIDIOC_G_PARM, &parm))

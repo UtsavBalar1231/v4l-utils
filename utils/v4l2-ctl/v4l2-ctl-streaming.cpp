@@ -136,6 +136,7 @@ void fps_timestamps::determine_field(int fd, unsigned type)
 
 	fmt.type = type;
 	ioctl(fd, VIDIOC_G_FMT, &fmt);
+	fprintf(stderr, "IOCTL: VIDIOC_G_FMT\n");
 	cv4l_fmt cfmt(fmt);
 	alternate_fields = cfmt.g_field() == V4L2_FIELD_ALTERNATE;
 }
@@ -610,6 +611,7 @@ static void stream_buf_caps(cv4l_fd &fd, unsigned buftype)
 	cbufs.format.type = buftype;
 	cbufs.memory = V4L2_MEMORY_MMAP;
 	if (!v4l_ioctl(fd.g_v4l_fd(), VIDIOC_CREATE_BUFS, &cbufs)) {
+		fprintf(stderr, "IOCTL: VIDIOC_CREATE_BUFS\n");
 		printf("Streaming I/O Capabilities for %s: %s\n",
 		       buftype2s(buftype).c_str(),
 		       bufcap2s(cbufs.capabilities).c_str());
@@ -619,8 +621,10 @@ static void stream_buf_caps(cv4l_fd &fd, unsigned buftype)
 	memset(&rbufs, 0, sizeof(rbufs));
 	rbufs.type = buftype;
 	rbufs.memory = V4L2_MEMORY_MMAP;
-	if (v4l_ioctl(fd.g_v4l_fd(), VIDIOC_REQBUFS, &rbufs))
+	if (v4l_ioctl(fd.g_v4l_fd(), VIDIOC_REQBUFS, &rbufs)){
+		fprintf(stderr, "IOCTL: VIDIOC_REQBUFS\n");
 		return;
+	}
 	printf("Streaming I/O Capabilities for %s: %s\n",
 	       buftype2s(buftype).c_str(),
 	       bufcap2s(rbufs.capabilities).c_str());
@@ -839,6 +843,7 @@ static int alloc_fwht_req(int media_fd, unsigned index)
 	int rc = 0;
 
 	rc = ioctl(media_fd, MEDIA_IOC_REQUEST_ALLOC, &fwht_reqs[index]);
+	fprintf(stderr, "IOCTL MEDIA_IOC_REQUEST_ALLOC\n");
 	if (rc < 0) {
 		fprintf(stderr, "Unable to allocate media request: %s\n",
 			strerror(errno));
@@ -1299,6 +1304,7 @@ static int do_setup_out_buffers(cv4l_fd &fd, cv4l_queue &q, FILE *fin, bool qbuf
 					    last_fwht_bf_ts, buf.g_timestamp_ns());
 			last_fwht_bf_ts = buf.g_timestamp_ns();
 			if (ioctl(buf.g_request_fd(), MEDIA_REQUEST_IOC_QUEUE) < 0) {
+				fprintf(stderr, "%s: MEDIA_REQUEST_IOC_QUEUE\n", __func__);
 				fprintf(stderr, "Unable to queue media request: %s\n",
 					strerror(errno));
 				return QUEUE_ERROR;
@@ -1579,6 +1585,7 @@ static int do_handle_out(cv4l_fd &fd, cv4l_queue &q, FILE *fin, cv4l_buffer *cap
 
 	if (fmt.g_pixelformat() == V4L2_PIX_FMT_FWHT_STATELESS) {
 		if (ioctl(buf.g_request_fd(), MEDIA_REQUEST_IOC_REINIT, NULL)) {
+			fprintf(stderr, "IOCTL MEDIA_REQUEST_IOC_REINIT\n");
 			fprintf(stderr, "Unable to reinit media request: %s\n",
 				strerror(errno));
 			return QUEUE_ERROR;
@@ -1608,6 +1615,7 @@ static int do_handle_out(cv4l_fd &fd, cv4l_queue &q, FILE *fin, cv4l_buffer *cap
 
 		last_fwht_bf_ts = buf.g_timestamp_ns();
 		if (ioctl(buf.g_request_fd(), MEDIA_REQUEST_IOC_QUEUE) < 0) {
+			fprintf(stderr, "IOCTL MEDIA_REQUEST_IOC_QUEUE\n");
 			fprintf(stderr, "Unable to queue media request: %s\n",
 				strerror(errno));
 			return QUEUE_ERROR;

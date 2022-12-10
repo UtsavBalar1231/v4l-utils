@@ -140,7 +140,7 @@ static int v4l2_request_read_buffers(int index)
 	req.memory = V4L2_MEMORY_MMAP;
 	result = devices[index].dev_ops->ioctl(devices[index].dev_ops_priv,
 			devices[index].fd, VIDIOC_REQBUFS, &req);
-	V4L2_LOG("%s:  VIDIOC_REQBUFS", __func__);
+	V4L2_PERROR("%s:  VIDIOC_REQBUFS", __func__);
 	if (result < 0) {
 		int saved_err = errno;
 
@@ -169,7 +169,7 @@ static void v4l2_unrequest_read_buffers(int index)
 	req.count = 0;
 	req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	req.memory = V4L2_MEMORY_MMAP;
-	V4L2_LOG("%s:  VIDIOC_REQBUFS", __func__);
+	V4L2_PERROR("%s:  VIDIOC_REQBUFS", __func__);
 	if (devices[index].dev_ops->ioctl(devices[index].dev_ops_priv,
 			devices[index].fd, VIDIOC_REQBUFS, &req) < 0)
 		return;
@@ -196,7 +196,7 @@ static int v4l2_map_buffers(int index)
 		result = devices[index].dev_ops->ioctl(
 				devices[index].dev_ops_priv,
 				devices[index].fd, VIDIOC_QUERYBUF, &buf);
-	V4L2_LOG("%s:  VIDIOC_QUERYBUF", __func__);
+	V4L2_PERROR("%s:  VIDIOC_QUERYBUF", __func__);
 		if (result) {
 			int saved_err = errno;
 
@@ -249,7 +249,7 @@ static int v4l2_streamon(int index)
 		result = devices[index].dev_ops->ioctl(
 				devices[index].dev_ops_priv,
 				devices[index].fd, VIDIOC_STREAMON, &type);
-	V4L2_LOG("%s:  VIDIOC_STREAMON", __func__);
+	V4L2_PERROR("%s:  VIDIOC_STREAMON", __func__);
 		if (result) {
 			int saved_err = errno;
 
@@ -273,7 +273,7 @@ static int v4l2_streamoff(int index)
 		result = devices[index].dev_ops->ioctl(
 				devices[index].dev_ops_priv,
 				devices[index].fd, VIDIOC_STREAMOFF, &type);
-	V4L2_LOG("%s:  VIDIOC_STREAMOFF", __func__);
+	V4L2_PERROR("%s:  VIDIOC_STREAMOFF", __func__);
 		if (result) {
 			int saved_err = errno;
 
@@ -304,7 +304,7 @@ static int v4l2_queue_read_buffer(int index, int buffer_index)
 	buf.index  = buffer_index;
 	result = devices[index].dev_ops->ioctl(devices[index].dev_ops_priv,
 			devices[index].fd, VIDIOC_QBUF, &buf);
-	V4L2_LOG("%s:  VIDIOC_QBUF", __func__);
+	V4L2_PERROR("%s:  VIDIOC_QBUF", __func__);
 	if (result) {
 		int saved_err = errno;
 
@@ -334,7 +334,7 @@ static int v4l2_dequeue_and_convert(int index, struct v4l2_buffer *buf,
 		result = devices[index].dev_ops->ioctl(
 				devices[index].dev_ops_priv,
 				devices[index].fd, VIDIOC_DQBUF, buf);
-	V4L2_LOG("%s:  VIDIOC_DQBUF", __func__);
+	V4L2_PERROR("%s:  VIDIOC_DQBUF", __func__);
 		pthread_mutex_lock(&devices[index].stream_lock);
 		if (result) {
 			if (errno != EAGAIN) {
@@ -591,7 +591,7 @@ static int v4l2_buffers_mapped(int index)
 					devices[index].dev_ops_priv,
 					devices[index].fd, VIDIOC_QUERYBUF,
 					&buf)) {
-	V4L2_LOG("%s:  VIDIOC_QUERYBUF", __func__);
+	V4L2_PERROR("%s:  VIDIOC_QUERYBUF", __func__);
 				int saved_err = errno;
 
 				V4L2_PERROR("querying buffer %u", i);
@@ -696,7 +696,7 @@ int v4l2_fd_open(int fd, int v4l2_flags)
 
 	/* check that this is a v4l2 device */
 	if (dev_ops->ioctl(dev_ops_priv, fd, VIDIOC_QUERYCAP, &cap)) {
-	V4L2_LOG("%s:  VIDIOC_QUERYCAP", __func__);
+	V4L2_PERROR("%s:  VIDIOC_QUERYCAP", __func__);
 		int saved_err = errno;
 		V4L2_LOG_ERR("getting capabilities: %s\n", strerror(errno));
 		v4l2_plugin_cleanup(plugin_library, dev_ops_priv, dev_ops);
@@ -713,7 +713,7 @@ int v4l2_fd_open(int fd, int v4l2_flags)
 	/* Get current cam format */
 	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	if (dev_ops->ioctl(dev_ops_priv, fd, VIDIOC_G_FMT, &fmt)) {
-	V4L2_LOG("%s:  VIDIOC_G_FMT", __func__);
+	V4L2_PERROR("%s:  VIDIOC_G_FMT", __func__);
 		int saved_err = errno;
 		V4L2_LOG_ERR("getting pixformat: %s\n", strerror(errno));
 		v4l2_plugin_cleanup(plugin_library, dev_ops_priv, dev_ops);
@@ -725,7 +725,7 @@ int v4l2_fd_open(int fd, int v4l2_flags)
 	parm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	if (dev_ops->ioctl(dev_ops_priv, fd, VIDIOC_G_PARM, &parm)) {
 		parm.type = 0;
-		V4L2_LOG("%s:  VIDIOC_G_PARM", __func__);
+		V4L2_PERROR("%s:  VIDIOC_G_PARM", __func__);
 	}
 	
 	/* init libv4lconvert */
@@ -1058,7 +1058,7 @@ static int v4l2_s_fmt(int index, struct v4l2_format *dest_fmt)
 		struct v4l2_streamparm parm = {
 			.type = V4L2_BUF_TYPE_VIDEO_CAPTURE,
 		};
-		V4L2_LOG("%s:  VIDIOC_G_PARM", __func__);
+		V4L2_PERROR("%s:  VIDIOC_G_PARM", __func__);
 		if (devices[index].dev_ops->ioctl(devices[index].dev_ops_priv,
 						  devices[index].fd,
 						  VIDIOC_G_PARM, &parm))
@@ -1095,28 +1095,41 @@ int v4l2_ioctl(int fd, unsigned long int request, ...)
 	/* Is this a capture request and do we need to take the stream lock? */
 	switch (request) {
 	case VIDIOC_QUERYCAP:
+		fprintf(stderr, "VIDIOC_QUERYCAP\n");
 	case VIDIOC_QUERYCTRL:
+		fprintf(stderr, "VIDIOC_QUERYCTRL\n");
 	case VIDIOC_G_CTRL:
+		fprintf(stderr, "VIDIOC_G_CTRL\n");
 	case VIDIOC_S_CTRL:
+		fprintf(stderr, "VIDIOC_S_CTRL\n");
 	case VIDIOC_G_EXT_CTRLS:
+		fprintf(stderr, "VIDIOC_G_EXT_CTRLS\n");
 	case VIDIOC_TRY_EXT_CTRLS:
+		fprintf(stderr, "VIDIOC_TRY_EXT_CTRLS\n");
 	case VIDIOC_S_EXT_CTRLS:
+		fprintf(stderr, "VIDIOC_S_EXT_CTRLS\n");
 	case VIDIOC_ENUM_FRAMESIZES:
+		fprintf(stderr, "VIDIOC_ENUM_FRAMESIZES\n");
 	case VIDIOC_ENUM_FRAMEINTERVALS:
+		fprintf(stderr, "VIDIOC_ENUM_FRAMEINTERVALS\n");
 		is_capture_request = 1;
 		break;
 	case VIDIOC_ENUM_FMT:
+		fprintf(stderr, "VIDIOC_ENUM_FMT\n");
 		if (((struct v4l2_fmtdesc *)arg)->type ==
 				V4L2_BUF_TYPE_VIDEO_CAPTURE)
 			is_capture_request = 1;
 		break;
 	case VIDIOC_TRY_FMT:
+		fprintf(stderr, "VIDIOC_TRY_FMT\n");
 		if (((struct v4l2_format *)arg)->type ==
 				V4L2_BUF_TYPE_VIDEO_CAPTURE)
 			is_capture_request = 1;
 		break;
 	case VIDIOC_S_FMT:
+		fprintf(stderr, "VIDIOC_S_FMT\n");
 	case VIDIOC_G_FMT:
+		fprintf(stderr, "VIDIOC_G_FMT\n");
 		if (((struct v4l2_format *)arg)->type ==
 				V4L2_BUF_TYPE_VIDEO_CAPTURE) {
 			is_capture_request = 1;
@@ -1124,6 +1137,7 @@ int v4l2_ioctl(int fd, unsigned long int request, ...)
 		}
 		break;
 	case VIDIOC_REQBUFS:
+		fprintf(stderr, "VIDIOC_REQBUFS\n");
 		if (((struct v4l2_requestbuffers *)arg)->type ==
 				V4L2_BUF_TYPE_VIDEO_CAPTURE) {
 			is_capture_request = 1;
@@ -1131,8 +1145,11 @@ int v4l2_ioctl(int fd, unsigned long int request, ...)
 		}
 		break;
 	case VIDIOC_QUERYBUF:
+		fprintf(stderr, "VIDIOC_QUERYBUF\n");
 	case VIDIOC_QBUF:
+		fprintf(stderr, "VIDIOC_QBUF\n");
 	case VIDIOC_DQBUF:
+		fprintf(stderr, "VIDIOC_DQBUF\n");
 		if (((struct v4l2_buffer *)arg)->type ==
 				V4L2_BUF_TYPE_VIDEO_CAPTURE) {
 			is_capture_request = 1;
@@ -1140,7 +1157,9 @@ int v4l2_ioctl(int fd, unsigned long int request, ...)
 		}
 		break;
 	case VIDIOC_STREAMON:
+		fprintf(stderr, "VIDIOC_STREAMON\n");
 	case VIDIOC_STREAMOFF:
+		fprintf(stderr, "VIDIOC_STREAMOFF\n");
 		if (*((enum v4l2_buf_type *)arg) ==
 				V4L2_BUF_TYPE_VIDEO_CAPTURE) {
 			is_capture_request = 1;
@@ -1148,6 +1167,7 @@ int v4l2_ioctl(int fd, unsigned long int request, ...)
 		}
 		break;
 	case VIDIOC_S_PARM:
+		fprintf(stderr, "VIDIOC_S_PARM\n");
 		if (((struct v4l2_streamparm *)arg)->type ==
 				V4L2_BUF_TYPE_VIDEO_CAPTURE) {
 			is_capture_request = 1;
@@ -1156,8 +1176,11 @@ int v4l2_ioctl(int fd, unsigned long int request, ...)
 		}
 		break;
 	case VIDIOC_S_STD:
+		fprintf(stderr, "VIDIOC_S_STD\n");
 	case VIDIOC_S_INPUT:
+		fprintf(stderr, "VIDIOC_S_INPUT\n");
 	case VIDIOC_S_DV_TIMINGS:
+		fprintf(stderr, "VIDIOC_S_DV_TIMINGS\n");
 		is_capture_request = 1;
 		stream_needs_locking = 1;
 		break;		

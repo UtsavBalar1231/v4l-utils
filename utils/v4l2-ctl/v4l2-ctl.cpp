@@ -390,6 +390,7 @@ static std::string printfmtname(int fd, __u32 type, __u32 pixfmt)
 	fmt.index = 0;
 	fmt.type = type;
 	while (test_ioctl(fd, VIDIOC_ENUM_FMT, &fmt) >= 0) {
+		printf("IOTCL VIDIOC_ENUM_FMT: %s\n", fmt.description);
 		if (fmt.pixelformat == pixfmt)
 			return s + reinterpret_cast<const char *>(fmt.description) + ")";
 		fmt.index++;
@@ -980,6 +981,7 @@ bool valid_pixel_format(int fd, __u32 pixelformat, bool output, bool mplane)
 			V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
 	while (!ioctl(fd, VIDIOC_ENUM_FMT, &fmt)) {
+		fprintf(stderr, "IOCTL: VIDIOC_ENUM_FMT: %s\n", fmt.description);
 		if (fmt.pixelformat == pixelformat)
 			return true;
 		fmt.index++;
@@ -999,8 +1001,10 @@ __u32 find_pixel_format(int fd, unsigned index, bool output, bool mplane)
 		fmt.type = mplane ? V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE :
 			V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-	if (ioctl(fd, VIDIOC_ENUM_FMT, &fmt))
+	if (ioctl(fd, VIDIOC_ENUM_FMT, &fmt)) {
+		fprintf(stderr, "IOCTL: VIDIOC_ENUM_FMT: %s\n", strerror(errno));
 		return 0;
+	}
 	return fmt.pixelformat;
 }
 
@@ -1025,6 +1029,7 @@ static int open_media_bus_info(const std::string &bus_info)
 				continue;
 			if (!ioctl(fd, MEDIA_IOC_DEVICE_INFO, &mdi) &&
 			    bus_info == mdi.bus_info) {
+				fprintf(stderr, "IOCTL: MEDIA_IOC_DEVICE_INFO: %s\n", devname.c_str());
 				closedir(dp);
 				return fd;
 			}
@@ -1053,6 +1058,7 @@ static const char *make_devname(const char *device, const char *devname,
 	media_v2_topology topology;
 	memset(&topology, 0, sizeof(topology));
 	if (ioctl(media_fd, MEDIA_IOC_G_TOPOLOGY, &topology)) {
+		fprintf(stderr, "IOCTL: MEDIA_IOC_G_TOPOLOGY: %s\n", strerror(errno));
 		close(media_fd);
 		return device;
 	}
@@ -1066,8 +1072,10 @@ static const char *make_devname(const char *device, const char *devname,
 
 	unsigned i, ent_id, iface_id = 0;
 
-	if (ioctl(media_fd, MEDIA_IOC_G_TOPOLOGY, &topology))
+	if (ioctl(media_fd, MEDIA_IOC_G_TOPOLOGY, &topology)) {
+		fprintf(stderr, "IOCTL: MEDIA_IOC_G_TOPOLOGY: %s\n", strerror(errno));
 		goto err;
+	}
 
 	if (device[0] == '0' && device[1] == 'x')
 		iface_id = strtoul(device, nullptr, 16);
@@ -1344,11 +1352,13 @@ int main(int argc, char **argv)
 
 	if (!is_subdev && doioctl(fd, VIDIOC_QUERYCAP, &vcap)) {
 		fprintf(stderr, "%s: not a v4l2 node\n", device);
+		fprintf(stderr, "IOCTL: VIDIOC_QUERYCAP\n");
 		std::exit(EXIT_FAILURE);
 	} else if (is_subdev) {
 		// This ioctl was introduced in kernel 5.10, so don't
 		// exit if this ioctl returns an error.
 		doioctl(fd, VIDIOC_SUBDEV_QUERYCAP, &subdevcap);
+		fprintf(stderr, "IOCTL: VIDIOC_SUBDEV_QUERYCAP\n");
 	}
 	if (!is_subdev) {
 		capabilities = vcap.capabilities;
@@ -1379,6 +1389,7 @@ int main(int argc, char **argv)
 		c_out_fd.s_trace(options[OptSilent] ? 0 : (verbose ? 2 : 1));
 		if (doioctl(out_fd, VIDIOC_QUERYCAP, &vcap)) {
 			fprintf(stderr, "%s: not a v4l2 node\n", out_device);
+			fprintf(stderr, "IOCTL: VIDIOC_QUERYCAP\n");
 			std::exit(EXIT_FAILURE);
 		}
 		out_capabilities = vcap.capabilities;
@@ -1398,6 +1409,7 @@ int main(int argc, char **argv)
 		c_exp_fd.s_trace(options[OptSilent] ? 0 : (verbose ? 2 : 1));
 		if (doioctl(exp_fd, VIDIOC_QUERYCAP, &vcap)) {
 			fprintf(stderr, "%s: not a v4l2 node\n", export_device);
+			fprintf(stderr, "IOCTL: VIDIOC_QUERYCAP\n");
 			std::exit(EXIT_FAILURE);
 		}
 	}
@@ -1524,9 +1536,13 @@ int main(int argc, char **argv)
 		memset(&sub, 0, sizeof(sub));
 		sub.type = e.ev;
 		sub.id = e.id;
-		if (!doioctl(fd, VIDIOC_SUBSCRIBE_EVENT, &sub))
-			if (!doioctl(fd, VIDIOC_DQEVENT, &ev))
+		if (!doioctl(fd, VIDIOC_SUBSCRIBE_EVENT, &sub)) {
+			fprintf(stderr, "IOCTL: VIDIOC_SUBSCRIBE_EVENT\n");
+			if (!doioctl(fd, VIDIOC_DQEVENT, &ev)) {
 				print_event(fd, &ev);
+				fprintf(stderr, "IOCTL: VIDIOC_DQEVENT\n");
+			}
+		}	
 		doioctl(fd, VIDIOC_UNSUBSCRIBE_EVENT, &sub);
 	}
 
@@ -1540,6 +1556,7 @@ int main(int argc, char **argv)
 		sub.type = e.ev;
 		sub.id = e.id;
 		doioctl(fd, VIDIOC_SUBSCRIBE_EVENT, &sub);
+		fprintf(stderr, "IOCTL: VIDIOC_SUBSCRIBE_EVENT\n");
 	}
 
 	if (options[OptPollForEvent]) {
@@ -1556,8 +1573,10 @@ int main(int argc, char **argv)
 			res = select(fd + 1, nullptr, nullptr, &fds, nullptr);
 			if (res <= 0)
 				break;
-			if (doioctl(fd, VIDIOC_DQEVENT, &ev))
+			if (doioctl(fd, VIDIOC_DQEVENT, &ev)) {
+				fprintf(stderr, "IOCTL: VIDIOC_DQEVENT\n");
 				break;
+			}
 			print_event(fd, &ev);
 			if (ev.sequence > seq)
 				printf("\tMissed %d events\n", ev.sequence - seq);
@@ -1583,8 +1602,10 @@ int main(int argc, char **argv)
 			res = epoll_wait(epollfd, &epoll_ev, 1, -1);
 			if (res <= 0)
 				break;
-			if (doioctl(fd, VIDIOC_DQEVENT, &ev))
+			if (doioctl(fd, VIDIOC_DQEVENT, &ev)) {
+				fprintf(stderr, "IOCTL: VIDIOC_DQEVENT\n");
 				break;
+			}
 			print_event(fd, &ev);
 			if (ev.sequence > seq)
 				printf("\tMissed %d events\n", ev.sequence - seq);
